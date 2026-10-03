@@ -23,6 +23,8 @@
   #tap h1{font-size:clamp(24px,5vw,52px);letter-spacing:.08em;
     background:linear-gradient(180deg,#fff,#ff7ac0 60%,#ff4a2d);-webkit-background-clip:text;background-clip:text;color:transparent}
   #tap p{font-size:12px;letter-spacing:.35em;color:#8a6a7a}
+  body.embed #ui,body.embed #tap{display:none}
+  body.embed canvas{object-fit:contain}
 </style>
 </head>
 <body>
@@ -175,6 +177,15 @@ tap.addEventListener('click', () => {
   tap.classList.add('hidden');
   if (!started){ started = true; t0 = null; }
 });
+// Embed mode (?embed=1): autoplay inside an iframe, no tap screen or buttons
+try {
+  const q = new URLSearchParams(window.location.search);
+  if (q.get('embed') === '1' || q.get('autoplay') === '1'){
+    document.body.classList.add('embed');
+    tap.classList.add('hidden');
+    started = true; t0 = null;
+  }
+} catch (e) {}
 document.getElementById('replay').addEventListener('click', (e) => {
   e.stopPropagation(); t0 = null;
 });
