@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PandalPulse — Durga Puja 3D Pandal Queue Tracker</title>
+  <meta name="description" content="Next-Gen Durga Puja Pandal Queue & Crowd Management Tracker. Real-time queue telemetry, VIP pass tracking, and estimated wait times.">
+
+  <!-- Google Fonts: Editorial Serif (Cinzel) + Modern Tech Sans (Manrope) + Monospace (JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Grain Texture (HackSpire style) -->
+  <div class="grain-overlay" aria-hidden="true"></div>
+
+  <!-- Ambient Light Orbs -->
+  <div class="ambient-glow glow-top" aria-hidden="true"></div>
+  <div class="ambient-glow glow-bottom" aria-hidden="true"></div>
+
+  <!-- Top Glass Navigation Bar -->
+  <header class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#hero" class="brand-logo">
+        <span class="logo-symbol">⚜</span>
+        <div class="logo-text">
+          <span class="logo-title">PANDALPULSE</span>
+          <span class="logo-sub">SHAKTI TELEMETRY • FIEM 2026</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#dashboard" class="nav-link">Live Telemetry</a>
+        <a href="#queue-section" class="nav-link">Active Queue</a>
+        <a href="#entry-form-section" class="nav-link">Volunteer Desk</a>
+        <a href="#about-pandal" class="nav-link">Pandal Guide</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="quickAddBtn" class="btn btn-primary btn-glow">
+          <span class="btn-icon">⚡</span>
+          <span>New Pass</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO SECTION (Cinematic 3D Video Hero Slot) -->
+    <section id="hero" class="hero-section">
+      <!-- 3D Video Background Container (Drop your MP4 here) -->
+      <div class="hero-media-wrapper">
+        <video 
+          id="heroVideo" 
+          class="hero-video" 
+          autoplay 
+          muted 
+          loop 
+          playsinline 
+          preload="auto"
+          poster="https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=1920&q=80"
+        >
+          <!-- Replace this source with your own render, e.g. 'assets/hero_durga_3d.mp4' -->
+          <source src="assets/hero_durga_3d.mp4" type="video/mp4">
+          <source src="https://ik.imagekit.io/scgxglkne/Imported_Media_1080p.mp4?updatedAt=1790100000000" type="video/mp4">
+        </video>
+        <div class="hero-video-tint"></div>
+      </div>
+
+      <!-- Hero Content -->
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>Maha Ashtami • Live Queue Management</span>
+        </div>
+        
+        <h1 class="hero-title">
+          Where Devotion Meets <span class="text-gradient">Real-Time Flow</span>
+        </h1>
+
+        <p class="hero-description">
+          An intelligent telemetry and queue controller for pandal volunteers. Eliminate bottlenecks, orchestrate VIP & General darshan queues, and preserve the sacred calm of Maa Durga’s sanctuary.
+        </p>
+
+        <div class="hero-cta-group">
+          <a href="#entry-form-section" class="btn btn-primary btn-large">
+            <span>Issue Visitor Pass</span>
+            <span class="arrow-right">→</span>
+          </a>
+          <a href="#queue-section" class="btn btn-secondary btn-large">
+            <span>Inspect Active Queue</span>
+          </a>
+        </div>
+
+        <!-- Quick Pulse Metric Strip -->
+        <div class="hero-quick-strip">
+          <div class="strip-item">
+            <span class="strip-label">STATUS</span>
+            <span class="strip-value status-open">Gates Open</span>
+          </div>
+          <div class="strip-divider"></div>
+          <div class="strip-item">
+            <span class="strip-label">AVG CLEARANCE</span>
+            <span class="strip-value">2.5 min / batch</span>
+          </div>
+          <div class="strip-divider"></div>
+          <div class="strip-item">
+            <span class="strip-label">CURRENT DARSHAN</span>
+            <span class="strip-value">Batch #48 Active</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-indicator">
+        <span class="scroll-mouse"><span class="scroll-wheel"></span></span>
+        <span class="scroll-label">SCROLL TO MONITOR</span>
+      </div>
+    </section>
+
+    <!-- LIVE TELEMETRY DASHBOARD (3D Glass Cards) -->
+    <section id="dashboard" class="dashboard-section section-padding">
+      <div class="container">
+        <div class="section-header text-center">
+          <p class="section-tag">LIVE TELEMETRY</p>
+          <h2 class="section-heading">Pandal Flow Dynamics</h2>
+          <p class="section-subtext">Real-time stats calculated dynamically from active visitors in the memory array.</p>
+        </div>
+
+        <div class="metrics-grid">
+          <!-- Card 1: Total Queue -->
+          <div class="metric-card glass-panel" data-tilt>
+            <div class="metric-icon-wrap icon-violet">
+              <span>👥</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">TOTAL IN QUEUE</span>
+              <div class="metric-number-wrap">
+                <span id="statTotalVisitors" class="metric-number">0</span>
+                <span class="metric-unit">Devotees</span>
+              </div>
+              <p class="metric-hint">Combined General &amp; VIP headcount</p>
+            </div>
+          </div>
+
+          <!-- Card 2: VIP Passes -->
+          <div class="metric-card glass-panel" data-tilt>
+            <div class="metric-icon-wrap icon-gold">
+              <span>⚜️</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">VIP PASSES</span>
+              <div class="metric-number-wrap">
+                <span id="statVipVisitors" class="metric-number text-gold">0</span>
+                <span class="metric-unit">Priority</span>
+              </div>
+              <p class="metric-hint">Fast-track gate access devotees</p>
+            </div>
+          </div>
+
+          <!-- Card 3: General Queue -->
+          <div class="metric-card glass-panel" data-tilt>
+            <div class="metric-icon-wrap icon-cyan">
+              <span>🌸</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">GENERAL DEVOTEES</span>
+              <div class="metric-number-wrap">
+                <span id="statGeneralVisitors" class="metric-number">0</span>
+                <span class="metric-unit">Standard</span>
+              </div>
+              <p class="metric-hint">Main serpentine barricade corridor</p>
+            </div>
+          </div>
+
+          <!-- Card 4: Estimated Wait Time -->
+          <div class="metric-card glass-panel" data-tilt>
+            <div class="metric-icon-wrap icon-rose">
+              <span>⏱️</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">ESTIMATED WAIT TIME</span>
+              <div class="metric-number-wrap">
+                <span id="statWaitTime" class="metric-number text-rose">0</span>
+                <span class="metric-unit">Minutes</span>
+              </div>
+              <p class="metric-hint">Dynamic estimate (2.5 min / batch)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VOLUNTEER DESK: ISSUE PASS & ENTRY CONTROL -->
+    <section id="entry-form-section" class="desk-section section-padding">
+      <div class="container">
+        <div class="desk-layout glass-panel">
+          
+          <div class="desk-info">
+            <span class="section-tag">VOLUNTEER DESK</span>
+            <h2 class="desk-heading">Generate Visitor Entry Pass</h2>
+            <p class="desk-copy">
+              Ensure devotee details are accurate. VIP passes grant expedited darshan lane verification, while General passes enter the main serpentine lane.
+            </p>
+
+            <div class="rules-card">
+              <h4 class="rules-title">Mandatory Volunteer Protocol</h4>
+              <ul class="rules-list">
+                <li><span>✦</span> Senior citizens and specially-abled automatically qualify for VIP queue priority.</li>
+                <li><span>✦</span> All entries are immutably logged into current shift telemetry memory.</li>
+                <li><span>✦</span> Instant badge verification generated on pass creation.</li>
+              </ul>
+            </div>
+
+            <!-- Mini secondary video slot (e.g. ambient Aarti / Dhunuchi / idol loop) -->
+            <div class="ambient-video-slot">
+              <div class="ambient-video-badge">Live CCTV Feed • Sanctum Gate</div>
+              <video 
+                class="ambient-loop" 
+                autoplay 
+                muted 
+                loop 
+                playsinline
+                poster="https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80"
+              >
+                <!-- Second customizable loop: drop your clip at assets/sanctum_cctv.mp4 -->
+                <source src="assets/sanctum_cctv.mp4" type="video/mp4">
+                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+              </video>
+            </div>
+          </div>
+
+          <!-- The Registration Form -->
+          <div class="desk-form-wrap">
+            <form id="visitorForm" class="visitor-form">
+              <div class="form-group">
+                <label for="visitorName" class="form-label">
+                  Devotee / Head of Family Name <span class="required">*</span>
+                </label>
+                <div class="input-wrap">
+                  <span class="input-icon">👤</span>
+                  <input 
+                    type="text" 
+                    id="visitorName" 
+                    class="form-input" 
+                    placeholder="e.g. Saikat Sengupta" 
+                    required 
+                    autocomplete="off"
+                    maxlength="45"
+                  >
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Pass Classification <span class="required">*</span></label>
+                <div class="pass-selector">
+                  <label class="pass-option" for="passGeneral">
+                    <input type="radio" name="passType" id="passGeneral" value="General" checked>
+                    <div class="pass-card">
+                      <span class="pass-icon">🌸</span>
+                      <div class="pass-details">
+                        <span class="pass-title">General Darshan</span>
+                        <span class="pass-desc">Standard queue passage</span>
+                      </div>
+                      <span class="pass-check">✓</span>
+                    </div>
+                  </label>
+
+                  <label class="pass-option" for="passVip">
+                    <input type="radio" name="passType" id="passVip" value="VIP">
+                    <div class="pass-card pass-card-vip">
+                      <span class="pass-icon">⚜️</span>
+                      <div class="pass-details">
+                        <span class="pass-title">VIP Access</span>
+                        <span class="pass-desc">Express darshan aisle</span>
+                      </div>
+                      <span class="pass-check">✓</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="groupSize" class="form-label">Members in Group</label>
+                <div class="input-wrap">
+                  <span class="input-icon">👨‍👩‍👧‍👦</span>
+                  <input 
+                    type="number" 
+                    id="groupSize" 
+                    class="form-input" 
+                    min="1" 
+                    max="10" 
+                    value="1" 
+                    required
+                  >
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-block btn-glow">
+                  <span class="btn-icon">✨</span>
+                  <span>Issue Pass &amp; Add to Queue</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Quick Action Shortcuts for Volunteers -->
+            <div class="quick-shortcuts">
+              <span class="shortcut-label">Volunteer Shortcuts:</span>
+              <button id="sampleDataBtn" class="btn-chip" type="button">+ Load 5 Demo Visitors</button>
+              <button id="clearAllBtn" class="btn-chip chip-danger" type="button">Reset Queue</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE SERPENTINE QUEUE SECTION -->
+    <section id="queue-section" class="queue-section section-padding">
+      <div class="container">
+        
+        <div class="queue-header-row">
+          <div>
+            <p class="section-tag">LIVE DECK</p>
+            <h2 class="section-heading">Active Queue Roster</h2>
+            <p class="section-subtext">Manage devotees currently progressing toward the sanctum sanctorum.</p>
+          </div>
+
+          <!-- Controls: Filter & Search -->
+          <div class="queue-controls">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="queueSearch" placeholder="Search by name or Pass ID..." class="search-input">
+            </div>
+
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">All (<span id="countAll">0</span>)</button>
+              <button class="filter-tab" data-filter="VIP">VIP (<span id="countVip">0</span>)</button>
+              <button class="filter-tab" data-filter="General">General (<span id="countGen">0</span>)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- The Queue Display Cards Grid -->
+        <div id="queueGrid" class="queue-grid">
+          <!-- Dynamically populated via app.js -->
+        </div>
+
+        <!-- Empty State Message -->
+        <div id="emptyQueueState" class="empty-state glass-panel">
+          <div class="empty-symbol">🪔</div>
+          <h3 class="empty-title">Queue is Currently Clear</h3>
+          <p class="empty-desc">No devotees waiting in line. Issue new passes using the Volunteer Desk above or load sample devotees to preview.</p>
+          <button id="emptyAddBtn" class="btn btn-primary">Generate First Pass</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CURVED TIMELINE OF SANCTUM STAGES (HackSpire Bezier Curve Feature) -->
+    <section class="stages-section section-padding">
+      <div class="container">
+        <div class="section-header text-center">
+          <p class="section-tag">DEVOTIONAL JOURNEY</p>
+          <h2 class="section-heading">The Path of Darshan</h2>
+          <p class="section-subtext">Every devotee journeys through 4 consecrated stages of crowd harmony.</p>
+        </div>
+
+        <div class="stages-timeline">
+          <!-- Stage 1 -->
+          <div class="stage-step">
+            <div class="stage-marker">01</div>
+            <div class="stage-content glass-panel">
+              <span class="stage-tag">TORAN DWAR</span>
+              <h3 class="stage-title">Entry &amp; Pass Verification</h3>
+              <p class="stage-text">Volunteers scan visitor tokens, filter VIP fast-lane holders, and dispense consecrated chandan mark.</p>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="stage-step">
+            <div class="stage-marker">02</div>
+            <div class="stage-content glass-panel">
+              <span class="stage-tag">NABAPATRIKA LANE</span>
+              <h3 class="stage-title">Serpentine Crowd Buffer</h3>
+              <p class="stage-text">Zig-zag barricades maintain continuous fluid motion, preventing choke points and stampede risks.</p>
+            </div>
+          </div>
+
+          <!-- Stage 3 -->
+          <div class="stage-step">
+            <div class="stage-marker">03</div>
+            <div class="stage-content glass-panel">
+              <span class="stage-tag">MANDAP ENCLOSURE</span>
+              <h3 class="stage-title">Darshan Sanctum View</h3>
+              <p class="stage-text">Devotees receive uninterrupted eyesight of the ten-armed Mahishasuramardini idol in 35-devotee batches.</p>
+            </div>
+          </div>
+
+          <!-- Stage 4 -->
+          <div class="stage-step">
+            <div class="stage-marker">04</div>
+            <div class="stage-content glass-panel">
+              <span class="stage-tag">BHOG PRASAD</span>
+              <h3 class="stage-title">Orderly Exit &amp; Prasad Handout</h3>
+              <p class="stage-text">Flow transitions safely toward the prasad distribution hub, refreshing queue capacity automatically.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANDAL VOLUNTEER FAQS (HackSpire Video Stacking Cards style) -->
+    <section id="about-pandal" class="faq-section section-padding">
+      <div class="container">
+        <div class="section-header text-center">
+          <p class="section-tag">VOLUNTEER CODEX</p>
+          <h2 class="section-heading">Crowd Control Field Manual</h2>
+          <p class="section-subtext">Standard operating procedures during peak Sandhi Puja and Aarti surges.</p>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item glass-panel">
+            <summary class="faq-question">
+              <span>How is Estimated Waiting Time calculated?</span>
+              <span class="faq-chevron">+</span>
+            </summary>
+            <div class="faq-answer">
+              <p>Our empirical algorithm weights each queued devotee: General × 2.0 min-factor, VIP × 1.0 fast-track factor, cleared in batches of 5 — i.e. <code>Math.ceil(((GeneralCount * 2.0) + (VipCount * 1.0)) / 5)</code> minutes. It recomputes on every add / admit.</p>
+            </div>
+          </details>
+
+          <details class="faq-item glass-panel">
+            <summary class="faq-question">
+              <span>What happens if the array memory resets during shift change?</span>
+              <span class="faq-chevron">+</span>
+            </summary>
+            <div class="faq-answer">
+              <p>The application automatically mirrors the JavaScript array in browser <code>localStorage</code>. Even if a volunteer accidentally refreshes the browser, zero queue data is lost.</p>
+            </div>
+          </details>
+
+          <details class="faq-item glass-panel">
+            <summary class="faq-question">
+              <span>How do volunteers cooperate using Git and GitHub?</span>
+              <span class="faq-chevron">+</span>
+            </summary>
+            <div class="faq-answer">
+              <p>The team works using feature branches (e.g. <code>feature/queue-logic</code>, <code>feature/3d-styling</code>), reviews Pull Requests, and auto-deploys via GitHub Pages or Vercel.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- LUXURY FOOTER -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <span class="logo-symbol">⚜</span>
+        <h3 class="footer-title">PANDALPULSE</h3>
+        <p class="footer-sub">Durga Puja Queue Management System • Team Hackathon Initiative</p>
+      </div>
+
+      <div class="footer-meta">
+        <p>Built with Passion, Shakti &amp; Clean JavaScript.</p>
+        <p class="text-dim">Inspired by HackSpire’s 3D Indian Spiritual Tech Aesthetics.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Pass Modal for Printed / Digital Badge Generation -->
+  <div id="passModal" class="modal-backdrop">
+    <div class="pass-modal glass-panel">
+      <button id="closeModalBtn" class="modal-close" aria-label="Close Modal">&times;</button>
+      
+      <div class="modal-badge-card" id="printablePass">
+        <div class="badge-head">
+          <span class="badge-logo">⚜ PANDALPULSE 2026</span>
+          <span id="modalPassType" class="badge-pill">VIP PASS</span>
+        </div>
+        
+        <div class="badge-body">
+          <p class="badge-token-label">TOKEN IDENTIFIER</p>
+          <h2 id="modalPassId" class="badge-token-id">#DP-9824</h2>
+          
+          <div class="badge-visitor-info">
+            <div>
+              <span class="badge-sub-label">DEVOTEE NAME</span>
+              <p id="modalVisitorName" class="badge-visitor-name">Saikat Sengupta</p>
+            </div>
+            <div>
+              <span class="badge-sub-label">GROUP SIZE</span>
+              <p id="modalGroupSize" class="badge-visitor-name">3 Persons</p>
+            </div>
+          </div>
+
+          <div class="badge-footer">
+            <div class="badge-qr-box">
+              <div class="qr-grid" aria-hidden="true">
+                <i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i>
+                <i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i>
+                <i class="on"></i><i class="on"></i><i></i><i></i><i class="on"></i>
+                <i></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i>
+                <i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i>
+              </div>
+              <span class="qr-caption">SCAN AT GATE</span>
+            </div>
+            <div class="badge-timestamp">
+              <span class="badge-sub-label">ISSUED AT</span>
+              <p id="modalTimestamp" class="badge-time">11:30 AM</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="printPassBtn" class="btn btn-secondary">Print / Save Token</button>
+        <button id="admitFromModalBtn" class="btn btn-primary">Admit to Sanctum</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
