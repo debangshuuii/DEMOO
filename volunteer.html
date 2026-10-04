@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Volunteer Scanner — PandalPulse</title>
+<meta name="description" content="Volunteer login and mobile-first QR ticket scanner.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="ticket-styles.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="ambient-glow glow-top" aria-hidden="true"></div>
+
+<header class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="brand-logo">
+      <span class="logo-symbol">⚜</span>
+      <div class="logo-text"><span class="logo-title">PANDALPULSE</span><span class="logo-sub">VOLUNTEER • ENTRY GATE</span></div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="tickets.html" class="nav-link nav-link-hot">Get Ticket</a>
+      <a href="admin.html" class="nav-link nav-link-hot">Admin</a>
+    </nav>
+    <div class="nav-actions"><button id="logoutBtnTop" class="btn btn-secondary" style="display:none">Logout</button></div>
+  </div>
+</header>
+
+<main class="ticket-page">
+<div class="ticket-wrap" style="max-width:640px">
+
+  <!-- LOGIN -->
+  <div id="loginView" class="ticket-card glass-panel auth-card">
+    <p class="section-tag">VOLUNTEER LOGIN</p>
+    <h2>Gate Volunteer Sign In</h2>
+    <p class="muted">Simple sign-in so every scan is credited to <b>you</b>.</p>
+    <form id="loginForm" class="ticket-form" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="username">Volunteer name / username</label>
+        <div class="input-wrap"><span class="input-icon">👤</span>
+          <input id="username" class="form-input" placeholder="e.g. rahul" required autocomplete="username">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrap"><span class="input-icon">🔒</span>
+          <input id="password" type="password" class="form-input has-toggle" placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-toggle="password" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block btn-glow" type="submit" id="loginBtn"><span>Login</span><span class="arrow-right">→</span></button>
+    </form>
+    <div class="demo-creds">Demo accounts — password <b>volunteer123</b>:<br>rahul • priya • amit<br><span class="hint">Admin uses <b>admin.html</b> (admin / admin123).</span></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashView" style="display:none">
+    <div class="topbar-user">
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span class="avatar" id="avatarLetter">V</span>
+        <div><div id="volName" style="font-weight:800">Volunteer</div>
+        <div class="hint mono" id="volMeta">—</div></div>
+      </div>
+      <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+    </div>
+
+    <button id="scanToggleBtn" class="btn btn-primary btn-glow scan-btn-big">📷&nbsp; SCAN QR</button>
+    <p class="hint" style="text-align:center;margin:.5rem 0 0">Point the camera at the visitor's ticket QR. No typing needed.</p>
+
+    <div id="scannerBox" class="ticket-card glass-panel" style="display:none;margin-top:1rem">
+      <div id="qr-reader"></div>
+      <div class="toolbar">
+        <button id="stopCamBtn" class="btn btn-secondary" type="button">Stop camera</button>
+      </div>
+      <p class="hint">Camera trouble? Type the Ticket ID below — it goes through the same backend check.</p>
+      <form id="manualForm" style="display:flex;gap:.5rem;margin-top:.5rem">
+        <input id="manualId" class="form-input mono" placeholder="TKT-XXXXXX" style="padding-left:1rem;text-transform:uppercase" maxlength="10">
+        <button class="btn btn-primary" type="submit">Verify</button>
+      </form>
+    </div>
+
+    <div id="resultHost"></div>
+
+    <div class="ticket-card glass-panel" style="margin-top:1rem">
+      <p class="section-tag">MY SHIFT • LIVE</p>
+      <h2 style="font-size:1.2rem">Scan counters</h2>
+      <div class="stat-grid">
+        <div class="stat-box"><b id="sTotal">0</b><span>SCANNED</span></div>
+        <div class="stat-box"><b id="sValid" style="color:#4ade80">0</b><span>VALID</span></div>
+        <div class="stat-box"><b id="sReused" style="color:#f59e0b">0</b><span>ALREADY USED</span></div>
+        <div class="stat-box"><b id="sInvalid" style="color:#f87171">0</b><span>INVALID</span></div>
+      </div>
+    </div>
+
+    <div class="ticket-card glass-panel" style="margin-top:1rem">
+      <h2 style="font-size:1.2rem">Recent scans</h2>
+      <div id="recentHost" class="recent-list"><p class="muted">No scans yet this shift.</p></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="ticket-backend.js"></script>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var html5Qr = null, scanning = false, lastScanAt = 0, lastPayload = '';
+  var toastTimer = null;
+  function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2600); }
+  function beep(ok){ try{ var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=new C(); var o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.value=ok?880:220; g.gain.value=.15; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.35); }catch(e){} }
+  function session(){ return TicketBackend.getSession(); }
+
+  TicketBackend.seedVolunteersIfEmpty().then(showCorrectView);
+
+  // Password visibility toggle (error-free typing)
+  document.querySelectorAll('.pw-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var input = document.getElementById(btn.getAttribute('data-toggle'));
+      if(!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      input.focus();
+    });
+  });
+
+  function showCorrectView(){
+    var s = session();
+    var logged = !!(s && (s.role==='volunteer'||s.role==='admin'));
+    if(!logged && TicketBackend.wasSessionExpired()){ toast('Session expired after 30 min of inactivity. Please log in again.'); }
+    $('loginView').style.display = logged ? 'none' : '';
+    $('dashView').style.display = logged ? '' : 'none';
+    $('logoutBtnTop').style.display = logged ? '' : 'none';
+    if(logged){ paintUser(s); refreshStats(); }
+  }
+
+  function paintUser(s){
+    $('volName').textContent = s.name + (s.role==='admin' ? ' (admin)' : '');
+    $('avatarLetter').textContent = (s.name||'V').charAt(0).toUpperCase();
+    $('volMeta').textContent = '@'+s.username+' • '+s.deviceId;
+  }
+
+  $('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var b = $('loginBtn'); b.disabled = true; b.querySelector('span').textContent = 'Signing in…';
+    TicketBackend.login($('username').value, $('password').value).then(function(r){
+      b.disabled = false; b.querySelector('span').textContent = 'Login';
+      if(!r.ok){ toast(r.error); beep(false); return; }
+      $('password').value='';
+      toast('Welcome, ' + r.session.name + '!');
+      showCorrectView();
+    });
+  });
+  function doLogout(){ stopScanner(); TicketBackend.logout(); showCorrectView(); toast('Signed out.'); }
+  $('logoutBtn').addEventListener('click', doLogout);
+  $('logoutBtnTop').addEventListener('click', doLogout);
+
+  /* ---------- scanner ---------- */
+  $('scanToggleBtn').addEventListener('click', function(){
+    if(scanning){ stopScanner(); $('scannerBox').style.display='none'; this.innerHTML='📷&nbsp; SCAN QR'; return; }
+    $('scannerBox').style.display='';
+    this.innerHTML='✕&nbsp; CLOSE SCANNER';
+    startScanner();
+  });
+  $('stopCamBtn').addEventListener('click', function(){ stopScanner(); $('scanToggleBtn').innerHTML='📷&nbsp; SCAN QR'; });
+  $('manualForm').addEventListener('submit', function(e){ e.preventDefault(); handlePayload($('manualId').value); $('manualId').value=''; });
+
+  function startScanner(){
+    var box = $('scannerBox'); box.style.display='';
+    if(typeof Html5Qrcode === 'undefined'){ toast('Scanner library offline — use manual entry below.'); return; }
+    stopScanner();
+    html5Qr = new Html5Qrcode('qr-reader');
+    scanning = true;
+    html5Qr.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: function(w,h){ var s=Math.min(w,h)*0.7; return {width:s|0,height:s|0}; }, aspectRatio: 1.0 },
+      function(decoded){ // onScanSuccess — debounce duplicates from continuous frames
+        var now = Date.now();
+        if(decoded === lastPayload && now - lastScanAt < 2500) return;
+        lastPayload = decoded; lastScanAt = now;
+        handlePayload(decoded);
+      },
+      function(){ /* per-frame misses ignored */ }
+    ).catch(function(err){
+      scanning = false;
+      toast('Camera blocked: ' + (err && err.message ? err.message : err) + ' — use manual entry.');
+    });
+  }
+  function stopScanner(){
+    scanning = false;
+    if(html5Qr){ try{ html5Qr.stop().then(function(){ try{html5Qr.clear();}catch(e){} }).catch(function(){}); }catch(e){} html5Qr=null; }
+  }
+
+  /* ---------- verification + result UI ---------- */
+  function handlePayload(raw){
+    var s = session();
+    if(!s){ toast('Please log in first.'); return; }
+    var res = TicketBackend.verifyTicket(raw, s); // <-- backend gate (atomic UNUSED→USED)
+    renderResult(res);
+    refreshStats();
+    beep(res.outcome==='VALID');
+    if(navigator.vibrate){ try{ navigator.vibrate(res.outcome==='VALID'?[60]:[120,60,120]); }catch(e){} }
+  }
+
+  function renderResult(res){
+    var h = $('resultHost');
+    var cls = res.outcome==='VALID' ? 'result-valid' : (res.outcome==='ALREADY_USED' ? 'result-reused' : 'result-invalid');
+    var emoji = res.outcome==='VALID' ? '✅' : (res.outcome==='ALREADY_USED' ? '⚠️' : '❌');
+    var title = res.outcome==='VALID' ? 'Ticket Verified — ENTRY ALLOWED' : (res.outcome==='ALREADY_USED' ? 'Ticket Already Used — ENTRY DENIED' : 'Invalid Ticket — ENTRY DENIED');
+    var body = '';
+    if(res.outcome==='VALID'){
+      var t = res.ticket;
+      body = '<div class="result-detail">Ticket ID: <b>'+t.ticketId+'</b><br>Status: VALID • Welcome, '+escapeHtml(t.holderName)+'!<br>'+escapeHtml(t.eventName)+' • '+escapeHtml(t.date)+' • '+t.type+'</div>';
+    } else if(res.outcome==='ALREADY_USED'){
+      var u = res.ticket;
+      body = '<div class="result-detail">Ticket ID: <b>'+u.ticketId+'</b><br>First scanned: '+TicketBackend.formatTime(u.usedAt)+'<br>Scanned by: '+escapeHtml(u.usedByName||'—')+'<br>Status: ENTRY ALREADY COMPLETED</div>';
+    } else {
+      body = '<div class="result-detail">Ticket: <b>'+escapeHtml(res.ticketId||'—')+'</b><br>This ticket could not be verified.<br>Please contact the event administrator.</div>';
+    }
+    h.innerHTML = '<div class="result-hero '+cls+'"><div class="result-emoji">'+emoji+'</div>' +
+      '<div class="result-title">'+title+'</div>' + body +
+      '<div class="toolbar" style="justify-content:center"><button id="nextBtn" class="btn btn-primary btn-block" style="margin-top:1rem;min-height:60px;font-size:1.1rem">▶ SCAN NEXT TICKET</button></div></div>';
+    h.scrollIntoView({behavior:'smooth', block:'center'});
+    $('nextBtn').onclick = function(){ h.innerHTML=''; lastPayload=''; if($('scannerBox').style.display==='none'){ $('scannerBox').style.display=''; $('scanToggleBtn').innerHTML='✕&nbsp; CLOSE SCANNER'; startScanner(); } };
+  }
+  function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function refreshStats(){
+    var s = session(); if(!s) return;
+    var st = TicketBackend.volunteerStats(s.volunteerId);
+    $('sTotal').textContent = st.total; $('sValid').textContent = st.valid;
+    $('sReused').textContent = st.reused; $('sInvalid').textContent = st.invalid;
+    $('recentHost').innerHTML = st.recent.length ? st.recent.map(function(r){
+      return '<div class="recent-row"><span class="dot dot-'+r.status+'"></span><span class="mono"><b>'+escapeHtml(r.ticketId)+'</b></span>' +
+        '<span class="status-tag st-'+r.status+'">'+r.status.replace('_',' ')+'</span>' +
+        '<span class="hint" style="margin-left:auto">'+TicketBackend.formatTime(r.timestamp)+'</span></div>';
+    }).join('') : '<p class="muted">No scans yet this shift.</p>';
+  }
+})();
+</script>
+</body>
+</html>

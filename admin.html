@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin Portal — PandalPulse</title>
+<meta name="description" content="Separate admin portal: secure login, devotee pass lookup scanner, search and scan history.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="ticket-styles.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  .dev-kv { display:grid; grid-template-columns: 150px 1fr; gap:.35rem .8rem; margin-top:.9rem; text-align:left; font-size:.92rem; }
+  .dev-kv dt { font-family:var(--font-mono); font-size:.68rem; letter-spacing:.14em; color:var(--text-dim); padding-top:.2rem; }
+  .dev-kv dd { margin:0; font-weight:700; color:#fff; word-break:break-word; }
+  .role-badge { font-family:var(--font-mono); font-size:.65rem; font-weight:700; letter-spacing:.14em; padding:.28rem .7rem; border-radius:999px; background:rgba(245,158,11,.16); color:var(--accent-gold); border:1px solid var(--border-gold); }
+  .kind-tag { font-family:var(--font-mono); font-size:.65rem; padding:.15rem .5rem; border-radius:999px; background:rgba(255,255,255,.06); color:var(--text-muted); border:1px solid var(--border-subtle); }
+  .filter-row { display:grid; grid-template-columns:1fr; gap:.6rem; margin-top:.7rem; }
+  @media (min-width:720px){ .filter-row { grid-template-columns: 2fr 1fr 1fr; } }
+  .filter-row input, .filter-row select { width:100%; }
+  select.form-input { padding-left:1rem; }
+</style>
+</head>
+<body>
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="ambient-glow glow-top" aria-hidden="true"></div>
+
+<header class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="brand-logo">
+      <span class="logo-symbol">⚜</span>
+      <div class="logo-text"><span class="logo-title">PANDALPULSE</span><span class="logo-sub">ADMIN PORTAL • RESTRICTED</span></div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="tickets.html" class="nav-link nav-link-hot">Get Ticket</a>
+      <a href="volunteer.html" class="nav-link nav-link-hot">Volunteer</a>
+    </nav>
+    <div class="nav-actions"><button id="logoutBtnTop" class="btn btn-secondary" style="display:none">Logout</button></div>
+  </div>
+</header>
+
+<main class="ticket-page">
+<div class="ticket-wrap" style="max-width:1080px">
+
+  <!-- ============ ADMIN LOGIN ============ -->
+  <div id="loginView" class="ticket-card glass-panel auth-card">
+    <p class="section-tag">ADMIN LOGIN • RESTRICTED</p>
+    <h2>Admin Portal Sign In</h2>
+    <p class="muted">Authorized administrators only. Volunteer accounts cannot enter here — not even by URL.</p>
+    <form id="loginForm" class="ticket-form" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="username">Admin username</label>
+        <div class="input-wrap"><span class="input-icon">🛡️</span>
+          <input id="username" class="form-input" required autocomplete="username" placeholder="e.g. admin">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Unique password</label>
+        <div class="input-wrap"><span class="input-icon">🔒</span>
+          <input id="password" type="password" class="form-input has-toggle" required autocomplete="current-password" placeholder="••••••••">
+          <button type="button" class="pw-toggle" data-toggle="password" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block btn-glow" type="submit" id="loginBtn"><span>Open Admin Portal</span><span class="arrow-right">→</span></button>
+    </form>
+    <p id="loginMsg" class="hint" style="margin-top:.6rem"></p>
+    <div class="demo-creds">Demo admin: <b>admin / admin123</b><br><span class="hint">Sessions expire after 30 min of inactivity and are re-validated on every protected request.</span></div>
+  </div>
+
+  <!-- ============ ADMIN DASHBOARD ============ -->
+  <div id="dashView" style="display:none">
+    <div class="topbar-user">
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span class="avatar" id="avatarLetter">A</span>
+        <div><div id="adminName" style="font-weight:800">Administrator</div>
+        <div class="hint mono" id="adminMeta">—</div></div>
+        <span class="role-badge">ADMIN</span>
+      </div>
+      <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+    </div>
+
+    <!-- Primary action: scan devotee pass -->
+    <button id="scanToggleBtn" class="btn btn-primary btn-glow scan-btn-big">📷&nbsp; SCAN DEVOTEE PASS</button>
+    <p class="hint" style="text-align:center;margin:.5rem 0 0">Lookup only — admin scans never consume entry. Volunteers scan for entry.</p>
+
+    <div id="scannerBox" class="ticket-card glass-panel" style="display:none;margin-top:1rem">
+      <div id="qr-reader"></div>
+      <div class="toolbar">
+        <button id="stopCamBtn" class="btn btn-secondary" type="button">Stop camera</button>
+      </div>
+      <p class="hint">No camera? Enter a Pass ID (<span class="mono">TKT-XXXXXX</span>) or Devotee ID (<span class="mono">DEV-XXXXXX</span>) — same backend check.</p>
+      <form id="manualForm" style="display:flex;gap:.5rem;margin-top:.5rem">
+        <input id="manualId" class="form-input mono" placeholder="TKT- / DEV-XXXXXX" style="padding-left:1rem;text-transform:uppercase" maxlength="12">
+        <button class="btn btn-primary" type="submit">Lookup</button>
+      </form>
+    </div>
+
+    <div id="resultHost"></div>
+
+    <!-- Stats -->
+    <div class="stat-grid" style="margin-top:1.2rem">
+      <div class="stat-box"><b id="stDev">0</b><span>REGISTERED DEVOTEES</span></div>
+      <div class="stat-box"><b id="stTotal">0</b><span>TOTAL PASSES</span></div>
+      <div class="stat-box"><b id="stUsed" style="color:#4ade80">0</b><span>PASSES SCANNED</span></div>
+      <div class="stat-box"><b id="stRemain" style="color:#06b6d4">0</b><span>NOT YET SCANNED</span></div>
+      <div class="stat-box"><b id="stInvalid" style="color:#f87171">0</b><span>INVALID ATTEMPTS</span></div>
+      <div class="stat-box"><b id="stToday">0</b><span>SCANS TODAY</span></div>
+      <div class="stat-box"><b id="stVols">0</b><span>VOLUNTEERS</span></div>
+      <div class="stat-box"><b id="stScans">0</b><span>TOTAL SCANS</span></div>
+    </div>
+
+    <div class="ticket-grid-2" style="margin-top:1.2rem">
+      <!-- Devotee search -->
+      <div class="ticket-card glass-panel">
+        <h2 style="font-size:1.2rem">🔍 Search Devotee</h2>
+        <p class="muted">By Devotee ID, Pass ID, name or phone.</p>
+        <div class="search-wrap" style="margin-top:.6rem"><span class="search-icon">🔍</span>
+          <input id="devoteeSearch" class="search-input" style="width:100%" placeholder="DEV-… / TKT-… / name / phone">
+        </div>
+        <div id="devoteeResults" class="recent-list"></div>
+      </div>
+      <!-- Recent scans -->
+      <div class="ticket-card glass-panel">
+        <h2 style="font-size:1.2rem">⚡ Recent Scans</h2>
+        <p class="muted">Latest activity across volunteers and admins.</p>
+        <div id="recentHost" class="recent-list"></div>
+      </div>
+    </div>
+
+    <!-- Scan history with filters -->
+    <div class="ticket-card glass-panel" style="margin-top:1.2rem">
+      <h2 style="font-size:1.2rem">🧾 Scan History <span class="hint">(admin only)</span></h2>
+      <div class="filter-row">
+        <div class="search-wrap"><span class="search-icon">🔍</span>
+          <input id="histQ" class="search-input" style="width:100%" placeholder="Pass / devotee / scanner">
+        </div>
+        <select id="histStatus" class="form-input">
+          <option value="all">All statuses</option>
+          <option value="VALID">Valid</option>
+          <option value="ALREADY_USED">Already Used</option>
+          <option value="INVALID">Invalid</option>
+        </select>
+        <select id="histDate" class="form-input">
+          <option value="all">All dates</option>
+          <option value="today">Today</option>
+        </select>
+      </div>
+      <div class="table-scroll"><table class="scan-table">
+        <thead><tr><th>Pass ID</th><th>Devotee</th><th>Scanned By</th><th>Status</th><th>Date &amp; Time</th></tr></thead>
+        <tbody id="scanRows"></tbody>
+      </table></div>
+      <div class="toolbar">
+        <button id="csvBtn" class="btn btn-secondary" type="button">⬇ Export CSV</button>
+        <button id="refreshBtn" class="btn btn-secondary" type="button">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Volunteer activity + system -->
+    <div class="ticket-grid-2" style="margin-top:1.2rem">
+      <div class="ticket-card glass-panel">
+        <h2 style="font-size:1.2rem">👥 Volunteer Activity</h2>
+        <p class="muted">Who scanned which tickets and when.</p>
+        <div id="volActivity" class="vol-grid"></div>
+      </div>
+      <div class="ticket-card glass-panel">
+        <h2 style="font-size:1.2rem">⚙️ Administration</h2>
+        <p class="muted">Authorized administrative functions.</p>
+        <div class="toolbar">
+          <button id="seedBtn" class="btn-chip" type="button">+ Seed 5 demo passes</button>
+          <button id="resetBtn" class="btn-chip chip-danger" type="button">Reset passes + scans</button>
+        </div>
+        <p class="hint" style="margin-top:.7rem">Passwords are SHA-256 hashed — never stored or shown in plain text. Every lookup is logged with admin identity, device and session.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+<div id="toast" class="toast"></div>
+<script src="ticket-backend.js"></script>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var html5Qr = null, scanning = false, lastScanAt = 0, lastPayload = '';
+  var toastTimer = null, watchdog = null;
+  function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2800); }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function beep(ok){ try{ var C=window.AudioContext||window.webkitAudioContext; if(!C) return; var c=new C(); var o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.value=ok?880:220; g.gain.value=.15; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.35); }catch(e){} }
+  function adminSession(){ var a = TicketBackend.authorize('admin'); return a.ok ? a.session : null; }
+
+  TicketBackend.seedVolunteersIfEmpty().then(showView);
+
+  // Password visibility toggle (error-free typing)
+  document.querySelectorAll('.pw-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var input = document.getElementById(btn.getAttribute('data-toggle'));
+      if(!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      input.focus();
+    });
+  });
+
+  function showView(expiredMsg){
+    var s = adminSession();
+    var isAdmin = !!s;
+    $('loginView').style.display = isAdmin ? 'none' : '';
+    $('dashView').style.display = isAdmin ? '' : 'none';
+    $('logoutBtnTop').style.display = isAdmin ? '' : 'none';
+    if(!isAdmin){
+      stopScanner();
+      if(watchdog){ clearInterval(watchdog); watchdog = null; }
+      if(expiredMsg || TicketBackend.wasSessionExpired()){
+        $('loginMsg').textContent = 'Session expired after 30 min of inactivity. Please log in again.';
+      }
+      return;
+    }
+    $('avatarLetter').textContent = (s.name||'A').charAt(0).toUpperCase();
+    $('adminName').textContent = s.name;
+    $('adminMeta').textContent = '@'+s.username+' • '+s.deviceId;
+    refresh();
+    if(!watchdog){
+      watchdog = setInterval(function(){ // inactivity watchdog → back to login
+        if(!TicketBackend.getSession()){ showView(true); toast('Session expired. Please log in again.'); }
+      }, 30000);
+    }
+  }
+
+  $('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var b = $('loginBtn'); b.disabled = true;
+    TicketBackend.login($('username').value, $('password').value).then(function(r){
+      b.disabled = false;
+      $('password').value = '';
+      if(!r.ok){ $('loginMsg').textContent = r.error; toast(r.error); beep(false); return; }
+      if(r.session.role !== 'admin'){
+        TicketBackend.logout();
+        $('loginMsg').textContent = 'Volunteer accounts cannot open the Admin Portal. Use the Volunteer scanner.';
+        toast('Admin access required.'); beep(false); return;
+      }
+      $('loginMsg').textContent = '';
+      $('username').value = '';
+      toast('Welcome, ' + r.session.name + '.');
+      showView();
+    });
+  });
+  function doLogout(msg){ stopScanner(); TicketBackend.logout(); showView(); if(msg) toast(msg); }
+  $('logoutBtn').addEventListener('click', function(){ doLogout('Signed out securely.'); });
+  $('logoutBtnTop').addEventListener('click', function(){ doLogout('Signed out securely.'); });
+
+  /* ---------- scanner ---------- */
+  $('scanToggleBtn').addEventListener('click', function(){
+    if(scanning){ stopScanner(); $('scannerBox').style.display='none'; this.innerHTML='📷&nbsp; SCAN DEVOTEE PASS'; return; }
+    $('scannerBox').style.display='';
+    this.innerHTML='✕&nbsp; CLOSE SCANNER';
+    startScanner();
+  });
+  $('stopCamBtn').addEventListener('click', function(){ stopScanner(); $('scanToggleBtn').innerHTML='📷&nbsp; SCAN DEVOTEE PASS'; });
+  $('manualForm').addEventListener('submit', function(e){ e.preventDefault(); handlePayload($('manualId').value); $('manualId').value=''; });
+
+  function startScanner(){
+    if(typeof Html5Qrcode === 'undefined'){ toast('Scanner library offline — use manual entry below.'); return; }
+    stopScanner();
+    html5Qr = new Html5Qrcode('qr-reader');
+    scanning = true;
+    html5Qr.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: function(w,h){ var s=Math.min(w,h)*0.7; return {width:s|0,height:s|0}; }, aspectRatio: 1.0 },
+      function(decoded){
+        var now = Date.now();
+        if(decoded === lastPayload && now - lastScanAt < 2500) return;
+        lastPayload = decoded; lastScanAt = now;
+        handlePayload(decoded);
+      },
+      function(){}
+    ).catch(function(err){
+      scanning = false;
+      toast('Camera blocked — use manual entry below.');
+    });
+  }
+  function stopScanner(){
+    scanning = false;
+    if(html5Qr){ try{ html5Qr.stop().then(function(){ try{html5Qr.clear();}catch(e){} }).catch(function(){}); }catch(e){} html5Qr=null; }
+  }
+
+  /* ---------- admin lookup + devotee screen ---------- */
+  function handlePayload(raw){
+    var s = adminSession();
+    if(!s){ showView(true); return; } // expired mid-scan → back to login
+    var res = TicketBackend.lookupPass(raw, s); // admin gate: auth + lookup, never consumes
+    renderResult(res);
+    refresh();
+    beep(res.outcome==='VALID');
+    if(navigator.vibrate){ try{ navigator.vibrate(res.outcome==='VALID'?[60]:[120,60,120]); }catch(e){} }
+  }
+  function regDate(ts){
+    try { return new Date(ts).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+    catch(e){ return '—'; }
+  }
+  function renderResult(res){
+    var h = $('resultHost');
+    if(res.outcome === 'FORBIDDEN'){
+      h.innerHTML = '<div class="result-hero result-invalid"><div class="result-emoji">🔒</div>' +
+        '<div class="result-title">Access Denied</div>' +
+        '<div class="result-detail">'+esc(res.error||'Admin access required.')+'</div></div>';
+      showView(); return;
+    }
+    var cls = res.outcome==='VALID' ? 'result-valid' : (res.outcome==='ALREADY_USED' ? 'result-reused' : 'result-invalid');
+    var emoji = res.outcome==='VALID' ? '✅' : (res.outcome==='ALREADY_USED' ? '⚠️' : '❌');
+    var title = res.outcome==='VALID' ? 'PASS VERIFIED — DEVOTEE FOUND' : (res.outcome==='ALREADY_USED' ? 'PASS ALREADY SCANNED' : 'INVALID PASS — NO RECORD FOUND');
+    var body = '';
+    if(res.outcome === 'VALID' || res.outcome === 'ALREADY_USED'){
+      var d = res.devotee;
+      body = '<dl class="dev-kv">' +
+        '<dt>DEVOTEE NAME</dt><dd>'+esc(d.name)+'</dd>' +
+        '<dt>DEVOTEE ID</dt><dd class="mono">'+esc(d.devoteeId)+'</dd>' +
+        '<dt>PASS ID</dt><dd class="mono">'+esc(d.ticketId)+'</dd>' +
+        '<dt>PASS TYPE</dt><dd>'+esc(d.type)+'</dd>' +
+        '<dt>REGISTRATION</dt><dd>Confirmed • '+esc(regDate(d.registeredAt))+'</dd>' +
+        '<dt>EVENT / PANDAL</dt><dd>'+esc(d.eventName)+'</dd>' +
+        (d.phone ? '<dt>PHONE</dt><dd class="mono">'+esc(d.phone)+'</dd>' : '') +
+        (res.outcome==='VALID'
+          ? '<dt>STATUS</dt><dd style="color:#4ade80">Valid — entry ' + (d.status==='USED'?'already completed':'not yet recorded') + '</dd>'
+          : '<dt>PREVIOUS SCAN</dt><dd>'+esc(TicketBackend.formatTime(d.usedAt))+'</dd>' +
+            '<dt>SCANNED BY</dt><dd>'+esc(d.usedByName||'—')+'</dd>') +
+        '</dl>' +
+        '<p class="hint" style="margin-top:.7rem">Lookup only — this scan did not consume entry.</p>';
+    } else {
+      body = '<div class="result-detail">This pass could not be found in the system.<br>Please verify the QR code or contact the administrator.</div>';
+    }
+    h.innerHTML = '<div class="result-hero '+cls+'"><div class="result-emoji">'+emoji+'</div>' +
+      '<div class="result-title">'+title+'</div>' + body +
+      '<div class="toolbar" style="justify-content:center"><button id="nextBtn" class="btn btn-primary btn-block" style="margin-top:1rem;min-height:60px;font-size:1.1rem">▶ SCAN ANOTHER PASS</button></div></div>';
+    h.scrollIntoView({behavior:'smooth', block:'center'});
+    $('nextBtn').onclick = function(){ h.innerHTML=''; lastPayload=''; if($('scannerBox').style.display==='none'){ $('scannerBox').style.display=''; $('scanToggleBtn').innerHTML='✕&nbsp; CLOSE SCANNER'; startScanner(); } };
+  }
+
+  /* ---------- dashboard data ---------- */
+  function refresh(){
+    if(!adminSession()){ showView(true); return; }
+    var s = TicketBackend.stats();
+    $('stDev').textContent=s.totalDevotees; $('stTotal').textContent=s.totalPasses;
+    $('stUsed').textContent=s.passesScanned; $('stRemain').textContent=s.passesNotScanned;
+    $('stInvalid').textContent=s.invalidAttempts; $('stToday').textContent=s.scansToday;
+    $('stVols').textContent=s.totalVolunteers; $('stScans').textContent=s.totalScans;
+    renderDevoteeResults(); renderRecent(); renderHistory(); renderVolActivity();
+  }
+  function renderDevoteeResults(){
+    var rows = TicketBackend.devoteeSearch($('devoteeSearch').value).slice(0,10);
+    $('devoteeResults').innerHTML = rows.length ? rows.map(function(d){
+      return '<div class="recent-row"><span class="mono"><b>'+esc(d.ticketId)+'</b></span>' +
+        '<span>'+esc(d.name)+'</span>' +
+        '<span class="status-tag '+(d.status==='USED'?'st-ALREADY_USED':'st-UNUSED')+'" style="margin-left:auto">'+d.status+'</span></div>' +
+        '<div class="hint">'+esc(d.devoteeId)+' • '+esc(d.type)+' • '+(d.phone?esc(d.phone)+' • ':'')+esc(regDate(d.registeredAt))+'</div>';
+    }).join('') : '<p class="muted">No devotees match.</p>';
+  }
+  function renderRecent(){
+    var rows = TicketBackend.scanHistory({}).slice(0,8);
+    $('recentHost').innerHTML = rows.length ? rows.map(function(r){
+      return '<div class="recent-row"><span class="dot dot-'+r.status+'"></span>' +
+        '<span class="mono"><b>'+esc(r.ticketId)+'</b></span>' +
+        '<span class="status-tag st-'+r.status+'">'+r.status.replace('_',' ')+'</span>' +
+        '<span class="kind-tag">'+esc(r.actorRole==='admin'?'ADMIN':'VOL')+' • '+esc(r.kind==='lookup'?'LOOKUP':'ENTRY')+'</span>' +
+        '<span class="hint" style="margin-left:auto">'+TicketBackend.formatTime(r.timestamp)+'</span></div>';
+    }).join('') : '<p class="muted">No scans yet.</p>';
+  }
+  function renderHistory(){
+    var rows = TicketBackend.scanHistory({ q:$('histQ').value, status:$('histStatus').value, date:$('histDate').value }).slice(0,60);
+    $('scanRows').innerHTML = rows.length ? rows.map(function(r){
+      return '<tr><td class="mono"><b>'+esc(r.ticketId)+'</b></td>' +
+        '<td>'+esc(devoteeNameFor(r.ticketId))+'</td>' +
+        '<td>'+esc(r.volunteerName)+' <span class="kind-tag">'+esc(r.actorRole==='admin'?'ADMIN':'VOL')+'</span></td>' +
+        '<td><span class="status-tag st-'+r.status+'">'+r.status.replace('_',' ')+'</span></td>' +
+        '<td>'+TicketBackend.formatTime(r.timestamp)+'</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="muted">No scans match these filters.</td></tr>';
+  }
+  function devoteeNameFor(ticketId){
+    var t = TicketBackend.findTicket(ticketId);
+    return t ? t.holderName : '—';
+  }
+  function renderVolActivity(){
+    var rows = TicketBackend.scansByVolunteer();
+    $('volActivity').innerHTML = rows.length ? rows.map(function(v){
+      return '<div class="stat-box"><b>'+v.total+'</b><span>'+esc(v.volunteerName).toUpperCase()+'</span>' +
+        '<div class="hint">✅ '+v.valid+' • ⚠️ '+v.reused+' • ❌ '+v.invalid+'</div></div>';
+    }).join('') : '<p class="muted">No volunteer activity yet.</p>';
+  }
+
+  $('devoteeSearch').addEventListener('input', function(){ if(adminSession()) renderDevoteeResults(); });
+  $('histQ').addEventListener('input', function(){ if(adminSession()) renderHistory(); });
+  $('histStatus').addEventListener('change', function(){ if(adminSession()) renderHistory(); });
+  $('histDate').addEventListener('change', function(){ if(adminSession()) renderHistory(); });
+  $('refreshBtn').addEventListener('click', refresh);
+  $('csvBtn').addEventListener('click', function(){ if(!adminSession()){showView(true);return;} TicketBackend.exportCSV(TicketBackend.listScans(), 'pandalpulse-scan-history.csv'); toast('CSV exported.'); });
+  $('seedBtn').addEventListener('click', function(){ if(!adminSession()){showView(true);return;} var n=TicketBackend.seedDemoTickets(5); toast(n? n+' demo passes added.' : 'Demo passes already present.'); refresh(); });
+  $('resetBtn').addEventListener('click', function(){ if(!adminSession()){showView(true);return;} if(confirm('Delete ALL passes and scan history on this device?')){ TicketBackend.resetDemoData(); toast('System reset.'); refresh(); } });
+})();
+</script>
+</body>
+</html>

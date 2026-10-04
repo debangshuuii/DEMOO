@@ -351,7 +351,14 @@ body {
 .nav-links {
   display: none;
   align-items: center;
-  gap: 2rem;
+  gap: 0.3rem;
+  padding: 0.35rem 0.45rem;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 @media (min-width: 860px) {
@@ -361,16 +368,56 @@ body {
 }
 
 .nav-link {
+  position: relative;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: color 0.2s ease;
-  position: relative;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent-violet-light), var(--accent-gold));
+  transform: translateX(-50%);
+  transition: width 0.25s ease;
 }
 
 .nav-link:hover {
   color: #ffffff;
+  background: rgba(123, 53, 248, 0.16);
+  border-color: rgba(205, 179, 252, 0.28);
+  box-shadow: 0 0 18px -4px var(--accent-violet-glow);
+  transform: translateY(-1px);
+}
+
+.nav-link:hover::after {
+  width: 55%;
+}
+
+/* Gold-highlighted ticket-system links */
+.nav-link-hot {
+  color: var(--accent-gold-light);
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.nav-link-hot:hover {
+  color: #ffffff;
+  background: rgba(245, 158, 11, 0.22);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 20px -4px var(--accent-gold-glow);
 }
 
 /* ==========================================================================
@@ -383,7 +430,7 @@ body {
   align-items: center;
   justify-content: center;
   padding-top: 100px;
-  padding-bottom: 50px;
+  padding-bottom: 120px;
   overflow: hidden;
 }
 
@@ -534,7 +581,7 @@ body {
 
 .scroll-indicator {
   position: absolute;
-  bottom: 24px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
@@ -544,6 +591,27 @@ body {
   gap: 0.5rem;
   opacity: 0.65;
   transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+/* Never overlap the stat strip: reserve clearance + hide cue on short/small screens */
+.hero-content {
+  padding-bottom: 1.5rem;
+}
+
+@media (max-height: 820px) {
+  .scroll-indicator {
+    display: none;
+  }
+  .hero-section {
+    padding-bottom: 70px;
+  }
+}
+
+@media (max-width: 640px) {
+  .scroll-indicator {
+    display: none;
+  }
 }
 
 .scroll-mouse {
@@ -1296,8 +1364,8 @@ details[open] .faq-chevron {
 
 .pass-modal {
   width: 100%;
-  max-width: 440px;
-  padding: 2.2rem;
+  max-width: 480px;
+  padding: 2rem;
   position: relative;
   transform: translateY(20px) scale(0.96);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1336,15 +1404,22 @@ details[open] .faq-chevron {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
   margin-bottom: 1.5rem;
 }
 
 .badge-logo {
   font-family: var(--font-serif);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--accent-gold);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
 }
 
 .badge-pill {
@@ -1355,6 +1430,8 @@ details[open] .faq-chevron {
   background: var(--accent-gold);
   color: #07070b;
   border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-token-label {
@@ -1398,9 +1475,29 @@ details[open] .faq-chevron {
 }
 
 .badge-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: center;
-  justify-content: space-between;
+}
+
+.badge-timestamp {
+  min-width: 0;
+}
+
+.badge-time {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 420px) {
+  .badge-footer {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
 }
 
 .qr-mock {
@@ -1408,12 +1505,6 @@ details[open] .faq-chevron {
   font-size: 1.4rem;
   letter-spacing: 0.15em;
   color: var(--accent-gold);
-}
-
-.badge-time {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--text-muted);
 }
 
 .modal-actions {
@@ -1586,12 +1677,36 @@ details[open] .faq-chevron {
   color: #07070b !important;
 }
 
-/* QR mockup grid */
+/* QR mockup grid (legacy) + real QR frame */
 .badge-qr-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
+}
+
+.badge-qr-box .qr-frame {
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 10px;
+  line-height: 0;
+  box-shadow: 0 0 18px var(--accent-gold-glow);
+  width: max-content;
+  max-width: 100%;
+}
+
+#modalQr {
+  width: 132px;
+  height: 132px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.badge-qr-box .qr-frame img,
+.badge-qr-box .qr-frame canvas,
+.badge-qr-box .qr-frame table {
+  width: 132px !important;
+  height: 132px !important;
 }
 
 .qr-grid {

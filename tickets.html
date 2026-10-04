@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Digital Ticket — PandalPulse QR Tickets</title>
+<meta name="description" content="Generate your unique QR-coded Durga Puja entry ticket.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="ticket-styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="ambient-glow glow-top" aria-hidden="true"></div>
+<div class="ambient-glow glow-bottom" aria-hidden="true"></div>
+
+<header class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="brand-logo">
+      <span class="logo-symbol">⚜</span>
+      <div class="logo-text"><span class="logo-title">PANDALPULSE</span><span class="logo-sub">QR TICKETS • FIEM 2026</span></div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="tickets.html" class="nav-link nav-link-hot">Get Ticket</a>
+      <a href="volunteer.html" class="nav-link nav-link-hot">Volunteer</a>
+      <a href="admin.html" class="nav-link nav-link-hot">Admin</a>
+    </nav>
+    <div class="nav-actions no-print">
+      <a href="volunteer.html" class="btn btn-primary btn-glow"><span class="btn-icon">📷</span><span>Scan Ticket</span></a>
+    </div>
+  </div>
+</header>
+
+<main class="ticket-page">
+<div class="ticket-wrap">
+  <p class="section-tag">VISITOR FLOW • REGISTER → QR → ENTRY</p>
+  <h1 class="section-heading">Get Your Digital Ticket</h1>
+  <p class="section-subtext" style="margin-inline:0">Each ticket gets a unique Ticket ID + QR code. Show the QR at the gate — one scan, one entry.</p>
+
+  <div class="ticket-grid-2" style="margin-top:1.8rem">
+    <div class="ticket-card glass-panel">
+      <h2>🎟️ Register / Purchase</h2>
+      <p class="muted">Fill in the visitor details. A unique unpredictable Ticket ID is minted — no two tickets share an ID.</p>
+      <form id="ticketForm" class="ticket-form" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="holderName">Visitor / holder name <span class="required">*</span></label>
+          <div class="input-wrap"><span class="input-icon">👤</span>
+            <input id="holderName" class="form-input" maxlength="45" placeholder="e.g. Saikat Sengupta" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="eventName">Event / Pandal name</label>
+          <div class="input-wrap"><span class="input-icon">⛩️</span>
+            <input id="eventName" class="form-input" maxlength="80" value="FIEM Durga Puja 2026 — PandalPulse">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label class="form-label" for="visitDate">Date</label>
+            <div class="input-wrap"><span class="input-icon">📅</span>
+              <input id="visitDate" type="date" class="form-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ticketType">Ticket type / category</label>
+            <div class="input-wrap"><span class="input-icon">🎫</span>
+              <select id="ticketType" class="form-input" style="padding-left:3rem">
+                <option value="General">General Darshan</option>
+                <option value="VIP">VIP Access</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone <span class="hint">(optional — admin lookup only)</span></label>
+          <div class="input-wrap"><span class="input-icon">📱</span>
+            <input id="phone" type="tel" class="form-input" maxlength="15" placeholder="e.g. 98765 43210" autocomplete="off">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-glow"><span>✨</span><span>Generate Unique Ticket + QR</span></button>
+      </form>
+      <div class="toolbar no-print">
+        <button id="demoBtn" class="btn-chip" type="button">+ Load 5 demo tickets</button>
+        <button id="myTicketsBtn" class="btn-chip" type="button">My tickets on this device</button>
+      </div>
+      <p class="hint">QR contains <b>only the Ticket ID</b> — no names or personal data. Verification always happens against the secure ticket store.</p>
+    </div>
+
+    <div>
+      <div id="passHost"></div>
+      <div id="noPass" class="ticket-card glass-panel">
+        <h2>No ticket yet</h2>
+        <p class="muted">Your digital ticket with a large scannable QR will appear here after registration. It shows Ticket ID, holder name, pandal, date and category.</p>
+        <div id="myTicketsHost" class="recent-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="ticket-backend.js"></script>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var MY_KEY = 'pp_my_tickets_v1';
+  var toastTimer = null;
+  function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2600); }
+  function myTickets(){ try{ return JSON.parse(localStorage.getItem(MY_KEY)||'[]'); }catch(e){ return []; } }
+  function saveMy(id){ try{ var a=myTickets(); if(a.indexOf(id)===-1){a.push(id); localStorage.setItem(MY_KEY,JSON.stringify(a));} }catch(e){} }
+
+  $('visitDate').value = new Date().toISOString().slice(0,10);
+
+  function renderPass(t){
+    currentTicket = t;
+    var host = $('passHost');
+    $('noPass').style.display = 'none';
+    host.innerHTML =
+      '<div class="digital-pass" id="printableTicket">' +
+        '<div class="dp-head"><span class="dp-logo">⚜ PANDALPULSE 2026</span>' +
+        '<span class="badge-pill ' + (t.type==='VIP'?'badge-pill-vip':'badge-pill-gen') + '">' + (t.type==='VIP'?'⚜ VIP':'🌸 GENERAL') + '</span></div>' +
+        '<span class="dp-label">TICKET ID</span>' +
+        '<div class="dp-id">' + t.ticketId + '</div>' +
+        '<div class="ticket-meta"><span class="pill pill-unused">' + t.status + '</span>' +
+        '<span class="pill">' + escapeHtml(t.date) + '</span>' +
+        (t.devoteeId ? '<span class="pill">' + t.devoteeId + '</span>' : '') + '</div>' +
+        '<div class="dp-rows">' +
+          '<div><span class="dp-label">VISITOR / HOLDER</span><div class="dp-name">' + escapeHtml(t.holderName) + '</div>' +
+          '<div class="muted" style="margin-top:.35rem">' + escapeHtml(t.eventName) + '</div></div>' +
+          '<div><span class="dp-label">CATEGORY</span><div class="dp-name">' + t.type + '</div>' +
+          '<div class="muted">1 ticket • 1 entry</div></div>' +
+        '</div>' +
+        '<div class="dp-qr-zone"><div><div class="qr-frame"><div id="qrBox"></div></div><div class="qr-caption2">SHOW AT GATE • SCAN QR</div></div>' +
+        '<div class="muted" style="max-width:230px">Volunteer scans this code at the entrance. After one successful scan it becomes <b>USED</b> and cannot be reused.</div></div>' +
+      '</div>' +
+      '<div class="toolbar no-print">' +
+        '<button id="dlBtn" class="btn btn-secondary">⬇ Download QR (PNG)</button>' +
+        '<button id="printBtn" class="btn btn-secondary">🖨 Print / Save</button>' +
+        '<button id="newBtn" class="btn btn-primary">+ New ticket</button>' +
+      '</div>';
+    // Real QR encoding ONLY the ticket id
+    new QRCode($('qrBox'), { text: t.ticketId, width: 168, height: 168, correctLevel: QRCode.CorrectLevel.M });
+    $('printBtn').onclick = function(){ window.print(); };
+    $('newBtn').onclick = function(){ host.innerHTML=''; $('noPass').style.display=''; renderMyList(); window.scrollTo({top:0,behavior:'smooth'}); };
+    $('dlBtn').onclick = downloadPNG;
+  }
+  var currentTicket = null;
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* Full-pass PNG: renders the entire ticket (header, ID, holder, event,
+     date, category, QR, footer) onto a canvas — not just the QR. */
+  function qrImage(){
+    return new Promise(function(resolve){
+      var img = document.querySelector('#qrBox img');
+      var canvas = document.querySelector('#qrBox canvas');
+      var src = img ? img.src : (canvas ? canvas.toDataURL('image/png') : null);
+      if(!src){ resolve(null); return; }
+      var im = new Image();
+      im.onload = function(){ resolve(im); };
+      im.onerror = function(){ resolve(null); };
+      im.src = src;
+    });
+  }
+  function rr(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function downloadPNG(){
+    var t = currentTicket;
+    if(!t){ toast('Generate a ticket first.'); return; }
+    toast('Rendering QR card…');
+    qrImage().then(function(qr){
+      var W = 720, H = 1020;
+      var c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      var ctx = c.getContext('2d');
+      // background
+      var bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, '#17171f'); bg.addColorStop(1, '#0b0b12');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      // gold border
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6;
+      rr(ctx, 16, 16, W - 32, H - 32, 32); ctx.stroke();
+      var cx = W / 2, y = 96;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '700 30px Georgia, serif';
+      ctx.fillText('⚜ PANDALPULSE 2026', cx, y); y += 66;
+      // queue / ticket no
+      ctx.fillStyle = '#64748b'; ctx.font = '700 22px monospace, monospace';
+      ctx.fillText('TICKET NO', cx, y); y += 58;
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 62px monospace, monospace';
+      ctx.fillText(t.ticketId, cx, y); y += 66;
+      // holder name
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 40px Manrope, Arial, sans-serif';
+      var nm = String(t.holderName);
+      if(ctx.measureText(nm).width > W - 120) ctx.font = '700 32px Manrope, Arial, sans-serif';
+      ctx.fillText(nm, cx, y); y += 66;
+      // category pill
+      var pillText = t.type === 'VIP' ? '⚜ VIP' : '🌸 GENERAL';
+      ctx.font = '700 30px monospace, monospace';
+      var pw = ctx.measureText(pillText).width + 70;
+      ctx.fillStyle = t.type === 'VIP' ? '#f59e0b' : '#06b6d4';
+      rr(ctx, cx - pw / 2, y - 38, pw, 56, 28); ctx.fill();
+      ctx.fillStyle = '#07070b';
+      ctx.fillText(pillText, cx, y); y += 72;
+      // QR white card
+      var qs = 360, qx = cx - qs / 2, qy = y;
+      ctx.fillStyle = '#ffffff';
+      rr(ctx, qx - 20, qy - 20, qs + 40, qs + 40, 22); ctx.fill();
+      if(qr){ ctx.drawImage(qr, qx, qy, qs, qs); }
+      else {
+        ctx.fillStyle = '#000'; ctx.font = '700 26px monospace, monospace';
+        ctx.fillText(t.ticketId, cx, qy + qs / 2);
+      }
+      y = qy + qs + 80;
+      ctx.fillStyle = '#94a3b8'; ctx.font = '700 22px monospace, monospace';
+      ctx.fillText('SHOW AT GATE  •  SCAN QR', cx, y);
+      // download
+      var a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = t.ticketId + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('QR card downloaded (' + t.ticketId + ').');
+    });
+  }
+
+  function renderMyList(){
+    var ids = myTickets();
+    var host = $('myTicketsHost');
+    if(!ids.length){ host.innerHTML=''; return; }
+    host.innerHTML = '<span class="hint">On this device:</span>' + ids.slice().reverse().map(function(id){
+      var t = TicketBackend.findTicket(id);
+      var st = t ? t.status : 'UNKNOWN';
+      return '<div class="recent-row"><span class="mono"><b>'+id+'</b></span><span class="status-tag '+(st==='USED'?'st-ALREADY_USED':'st-UNUSED')+'">'+st+'</span></div>';
+    }).join('');
+  }
+
+  $('ticketForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var r = TicketBackend.createTicket({
+      holderName: $('holderName').value, eventName: $('eventName').value,
+      date: $('visitDate').value, type: $('ticketType').value, phone: $('phone').value
+    });
+    if(!r.ok){ toast(r.error); return; }
+    saveMy(r.ticket.ticketId);
+    renderPass(r.ticket);
+    toast('Ticket ' + r.ticket.ticketId + ' issued.');
+  });
+  $('demoBtn').addEventListener('click', function(){
+    var n = TicketBackend.seedDemoTickets(5);
+    toast(n ? n + ' demo tickets added.' : 'Demo tickets already exist.');
+    renderMyList();
+  });
+  $('myTicketsBtn').addEventListener('click', renderMyList);
+  renderMyList();
+})();
+</script>
+<style>@media print{ body *{visibility:hidden} #printableTicket,#printableTicket *{visibility:visible} #printableTicket{position:absolute;inset:1rem auto auto 1rem;width:92%;background:#fff!important} .dp-id,.dp-name,.dp-logo{color:#000!important} } }</style>
+</body>
+</html>

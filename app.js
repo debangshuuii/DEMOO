@@ -52,6 +52,7 @@ function cacheDom() {
   els.modalTime = $('modalTimestamp');
   els.printBtn = $('printPassBtn');
   els.admitFromModal = $('admitFromModalBtn');
+  els.modalQr = $('modalQr');
   els.toast = $('toast');
   els.filterTabs = Array.prototype.slice.call(document.querySelectorAll('.filter-tab'));
 }
@@ -384,18 +385,42 @@ function setNumber(el, value) {
 }
 
 /* ---------- Modal ---------- */
+var modalPass = null; // { id, name, groupSize, time, passType } for PNG export
+
+function renderModalQr(id) {
+  if (!els.modalQr) return;
+  els.modalQr.innerHTML = '';
+  try {
+    if (typeof QRCode !== 'undefined') {
+      // Real QR, unique per pass — encodes this pass's token id only
+      new QRCode(els.modalQr, {
+        text: String(id),
+        width: 132,
+        height: 132,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else {
+      els.modalQr.innerHTML = '<span style="font-family:monospace;color:#000;font-size:12px">' + escapeHtml(id) + '</span>';
+    }
+  } catch (e) { /* QR lib failed — id text remains readable */ }
+}
+
 function openModal(id) {
   var v = queue.find(function (x) { return x.id === id; });
   if (!v) return;
   modalVisitorId = id;
   var isVip = v.passType === 'VIP';
+  var groupLabel = v.groupSize + (v.groupSize > 1 ? ' Persons' : ' Person');
+  var timeLabel = formatTime(v.entryTime);
+  modalPass = { id: v.id, name: v.name, groupSize: groupLabel, time: timeLabel, passType: v.passType };
   els.modalPassId.textContent = v.id;
   els.modalName.textContent = v.name;
-  els.modalGroup.textContent = v.groupSize + (v.groupSize > 1 ? ' Persons' : ' Person');
-  els.modalTime.textContent = formatTime(v.entryTime);
+  els.modalGroup.textContent = groupLabel;
+  els.modalTime.textContent = timeLabel;
   els.modalPassType.textContent = isVip ? '⚜ VIP PASS' : '🌸 GENERAL PASS';
   els.modalPassType.classList.toggle('badge-pill-vip', isVip);
   els.modalPassType.classList.toggle('badge-pill-gen', !isVip);
+  renderModalQr(v.id);
   els.modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -404,6 +429,91 @@ function closeModal() {
   modalVisitorId = null;
   if (els.modal) els.modal.classList.remove('active');
   document.body.style.overflow = '';
+}
+
+/* ---------- Pass PNG export (exactly what the modal card shows) ---------- */
+function rrPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function downloadPassPng() {
+  if (!modalPass) { toast('Open a pass first.'); return; }
+  var p = modalPass;
+  var isVip = p.passType === 'VIP';
+  var qrImg = document.querySelector('#modalQr img');
+  var qrCanvas = document.querySelector('#modalQr canvas');
+  var qrSrc = qrImg ? qrImg.src : (qrCanvas ? qrCanvas.toDataURL('image/png') : null);
+  function finish(qr) {
+    var W = 720, H = 1020;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+    var bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#17171f'); bg.addColorStop(1, '#0c0c14');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 5;
+    rrPath(ctx, 16, 16, W - 32, H - 32, 30); ctx.stroke();
+    var y = 104;
+    // header
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#f59e0b'; ctx.font = '700 30px Georgia, serif';
+    ctx.fillText('⚜ PANDALPULSE 2026', 60, y);
+    var pill = isVip ? '⚜ VIP PASS' : '🌸 GENERAL PASS';
+    ctx.font = '700 24px monospace, monospace';
+    var pw = ctx.measureText(pill).width + 56;
+    ctx.fillStyle = isVip ? '#f59e0b' : '#06b6d4';
+    rrPath(ctx, W - 60 - pw, y - 34, pw, 48, 12); ctx.fill();
+    ctx.fillStyle = '#07070b'; ctx.textAlign = 'center';
+    ctx.fillText(pill, W - 60 - pw / 2, y); ctx.textAlign = 'left';
+    y += 84;
+    // token identifier
+    ctx.fillStyle = '#64748b'; ctx.font = '700 22px monospace, monospace';
+    ctx.fillText('TOKEN IDENTIFIER', 60, y); y += 74;
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 76px monospace, monospace';
+    ctx.fillText(p.id, 60, y); y += 100;
+    // devotee name + group size
+    ctx.fillStyle = '#64748b'; ctx.font = '700 22px monospace, monospace';
+    ctx.fillText('DEVOTEE NAME', 60, y);
+    ctx.fillText('GROUP SIZE', W / 2 + 10, y); y += 52;
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 40px Manrope, Arial, sans-serif';
+    var nm = String(p.name);
+    if (ctx.measureText(nm).width > W / 2 - 40) ctx.font = '700 32px Manrope, Arial, sans-serif';
+    ctx.fillText(nm, 60, y);
+    ctx.fillText(String(p.groupSize), W / 2 + 10, y); y += 56;
+    // dashed divider
+    ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 2;
+    ctx.setLineDash([12, 10]);
+    ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
+    ctx.setLineDash([]); y += 70;
+    // QR + issued at
+    var qs = 300;
+    ctx.fillStyle = '#ffffff';
+    rrPath(ctx, 60, y, qs + 32, qs + 32, 18); ctx.fill();
+    if (qr) ctx.drawImage(qr, 76, y + 16, qs, qs);
+    ctx.fillStyle = '#64748b'; ctx.font = '700 22px monospace, monospace';
+    ctx.fillText('ISSUED AT', W / 2 + 10, y + 120);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '400 30px Manrope, Arial, sans-serif';
+    ctx.fillText(String(p.time), W / 2 + 10, y + 168);
+    var qBottom = y + qs + 32;
+    ctx.fillStyle = '#64748b'; ctx.font = '700 20px monospace, monospace';
+    ctx.fillText('S C A N   A T   G A T E', 60, qBottom + 48);
+    var a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = String(p.id).replace('#', '') + '-pass.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Pass ' + p.id + ' downloaded as PNG.');
+  }
+  if (!qrSrc) { finish(null); return; }
+  var im = new Image();
+  im.onload = function () { finish(im); };
+  im.onerror = function () { finish(null); };
+  im.src = qrSrc;
 }
 
 /* ---------- 3D tilt (springy, pointer-only, respects reduced motion) ---------- */
@@ -510,7 +620,7 @@ function bindEvents() {
     if (e.key === 'Escape' && els.modal.classList.contains('active')) closeModal();
   });
 
-  els.printBtn.addEventListener('click', function () { window.print(); });
+  els.printBtn.addEventListener('click', downloadPassPng);
   els.admitFromModal.addEventListener('click', function () {
     if (modalVisitorId) admitVisitor(modalVisitorId);
   });

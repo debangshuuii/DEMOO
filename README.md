@@ -12,6 +12,11 @@ printable digital token passes, and rock-solid vanilla-JS queue logic with
 | `index.html` | Semantic HTML5: hero video slot, telemetry HUD, volunteer desk + CCTV slot, serpentine queue deck, pass modal, toasts |
 | `style.css` | HackSpire obsidian theme, Cinzel / Manrope / JetBrains Mono, grain overlay, 3D card tilts, micro-loops, print styles |
 | `app.js` | Queue state array, wait-time engine, filters/search, Web Audio chimes, modal, tilt |
+| `ticket-backend.js` | QR ticket "backend": unique Ticket IDs, volunteer auth (hashed), atomic `verifyTicket()` UNUSED→USED gate, scan log, stats/search |
+| `ticket-styles.css` | Shared mobile-first styles for the ticket system (result states, scanner, tables) |
+| `tickets.html` | Visitor flow: register → unique Ticket ID + real QR → digital ticket display/download |
+| `volunteer.html` | Volunteer login + mobile dashboard + camera QR scanner (html5-qrcode) + manual fallback |
+| `admin.html` | Admin dashboard: totals, ticket search, volunteer activity, scan-history table, CSV export |
 | `assets/` (you add) | `hero_durga_3d.mp4`, `sanctum_cctv.mp4` — optional local 3D loops (CDN fallbacks ship by default) |
 
 ## Quick start (no build step)
@@ -116,6 +121,54 @@ Live at `https://<user>.github.io/<repo>/` in ~1 min. Re-deploy = push to `main`
 1. Import the repo at `vercel.com` → Framework Preset: **Other**.
 2. Build command: *(empty)*, Output directory: `./`.
 3. Every PR gets a preview URL; merging to `main` promotes to production.
+
+## QR ticket + volunteer verification system
+
+Visitor flow: `tickets.html` → register → unique `TKT-XXXXXX` ID → real QR (encodes
+**only the Ticket ID**, no PII) → digital ticket shows ID, holder, pandal, date,
+category + QR → show at gate.
+
+Volunteer flow: `volunteer.html` → login (demo: `rahul` / `priya` / `amit` with
+password `volunteer123`) → dashboard (Scan QR, counters, recent scans) → camera
+scanner (html5-qrcode, `facingMode: environment`, mobile-friendly) → backend
+`TicketBackend.verifyTicket()` → 🟢 VALID / 🟠 ALREADY USED / 🔴 INVALID →
+"Scan Next Ticket". A manual Ticket-ID entry fallback ships for desktops / denied
+camera permission.
+
+Duplicate prevention: `verifyTicket()` does an atomic read-modify-write
+(compare-and-swap: fresh re-read → check `UNUSED` → flip to `USED` + write).
+A second scan of the same QR always returns `ALREADY_USED` with first-scan time
++ volunteer. Invalid IDs are logged but never marked used. Every scan stores
+ticket ID, volunteer ID/name, status, timestamp, event, device + session ID.
+
+Admin: `admin.html` → login (`admin` / `admin123`) → totals (generated / used /
+remaining / invalid / volunteers / scans today), ticket search (ID, visitor,
+volunteer), volunteer-activity cards, scan-history table, CSV export.
+
+## Admin Portal (separate privileged module)
+
+`admin.html` is a dedicated portal, not a tab of the volunteer app:
+
+- **Admin-only login** — SHA-256 hashed passwords; volunteer accounts are rejected
+  even by direct URL. Every protected call re-validates the session server-side
+  pattern via `TicketBackend.authorize('admin')` (never trusts role from page state).
+- **30-min inactivity timeout** — `lastActive` is touched on every action; expired
+  sessions are cleared and the UI redirects to login with a watchdog + per-request check.
+- **Scan Devotee Pass** (primary, mobile-first, `Html5Qrcode` + manual `TKT-`/`DEV-`
+  entry) → `lookupPass()` returns the full authorized devotee record (name,
+  `DEV-XXXXXX`, pass ID, type, confirmed registration date, event, phone if
+  collected) as 🟢 VALID, 🟠 ALREADY SCANNED (with previous time + scanner), or
+  🔴 INVALID. Lookups are read-only — they never consume entry; only volunteer
+  `verifyTicket()` flips `UNUSED→USED`. Every lookup is logged with admin identity,
+  device and session, plus a **Scan Another Pass** loop.
+- **Search Devotee** by Devotee ID / Pass ID / name / phone; **Scan History** with
+  text + status + date filters showing pass, devotee, scanner (admin/volunteer tag),
+  status and timestamp; volunteer activity; admin profile + secure logout.
+
+> Note: persistence is `localStorage` (static-site friendly, survives refresh).
+> For multi-device production, swap the `readLS`/`writeLS` layer in
+> `ticket-backend.js` for Firebase/Supabase calls — the `verifyTicket()` gate
+> must then run as a server transaction (e.g. Firestore transaction).
 
 ## Testing checklist
 

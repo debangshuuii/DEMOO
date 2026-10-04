@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -37,6 +38,9 @@
         <a href="#dashboard" class="nav-link">Live Telemetry</a>
         <a href="#queue-section" class="nav-link">Active Queue</a>
         <a href="#entry-form-section" class="nav-link">Volunteer Desk</a>
+        <a href="tickets.html" class="nav-link nav-link-hot">🎟️ Get Ticket</a>
+        <a href="volunteer.html" class="nav-link nav-link-hot">📷 Volunteer Scan</a>
+        <a href="admin.html" class="nav-link nav-link-hot">🛡️ Admin</a>
         <a href="#about-pandal" class="nav-link">Pandal Guide</a>
       </nav>
 
@@ -87,12 +91,15 @@
         </p>
 
         <div class="hero-cta-group">
-          <a href="#entry-form-section" class="btn btn-primary btn-large">
-            <span>Issue Visitor Pass</span>
+          <a href="tickets.html" class="btn btn-primary btn-large">
+            <span>🎟️ Get QR Ticket</span>
             <span class="arrow-right">→</span>
           </a>
-          <a href="#queue-section" class="btn btn-secondary btn-large">
-            <span>Inspect Active Queue</span>
+          <a href="volunteer.html" class="btn btn-secondary btn-large">
+            <span>📷 Volunteer Scan</span>
+          </a>
+          <a href="#entry-form-section" class="btn btn-secondary btn-large">
+            <span>Issue Visitor Pass</span>
           </a>
         </div>
 
@@ -188,6 +195,29 @@
                 <span class="metric-unit">Minutes</span>
               </div>
               <p class="metric-hint">Dynamic estimate (2.5 min / batch)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QR TICKET SYSTEM ENTRY -->
+    <section class="stages-section section-padding" style="padding-top:0">
+      <div class="container">
+        <div class="desk-layout glass-panel" style="grid-template-columns:1fr;gap:1.2rem;text-align:center">
+          <div>
+            <span class="section-tag">QR TICKET + ENTRY VERIFICATION</span>
+            <h2 class="desk-heading">One QR Per Devotee. Zero Duplicate Entry.</h2>
+            <p class="desk-copy" style="max-width:640px;margin-inline:auto">
+              Visitors generate a unique <b class="mono">TKT-XXXXXX</b> ticket with a scannable QR.
+              Volunteers verify it with a mobile camera — <b style="color:#4ade80">VALID → entry</b>,
+              <b style="color:#f59e0b">USED → denied</b>, <b style="color:#f87171">INVALID → denied</b>.
+              Every scan is logged with volunteer, time and device.
+            </p>
+            <div class="hero-cta-group" style="margin-bottom:0">
+              <a href="tickets.html" class="btn btn-primary btn-large"><span>🎟️ Get Digital Ticket</span><span class="arrow-right">→</span></a>
+              <a href="volunteer.html" class="btn btn-secondary btn-large"><span>📷 Volunteer Login + Scan</span></a>
+              <a href="admin.html" class="btn btn-secondary btn-large"><span>🛡️ Admin Dashboard</span></a>
             </div>
           </div>
         </div>
@@ -498,13 +528,7 @@
 
           <div class="badge-footer">
             <div class="badge-qr-box">
-              <div class="qr-grid" aria-hidden="true">
-                <i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i>
-                <i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i>
-                <i class="on"></i><i class="on"></i><i></i><i></i><i class="on"></i>
-                <i></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i>
-                <i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i>
-              </div>
+              <div class="qr-frame"><div id="modalQr"></div></div>
               <span class="qr-caption">SCAN AT GATE</span>
             </div>
             <div class="badge-timestamp">
@@ -516,7 +540,7 @@
       </div>
 
       <div class="modal-actions">
-        <button id="printPassBtn" class="btn btn-secondary">Print / Save Token</button>
+        <button id="printPassBtn" class="btn btn-secondary">⬇ Download Pass (PNG)</button>
         <button id="admitFromModalBtn" class="btn btn-primary">Admit to Sanctum</button>
       </div>
     </div>
@@ -525,6 +549,7 @@
   <!-- Notification Toast -->
   <div id="toast" class="toast"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
